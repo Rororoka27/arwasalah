@@ -1,0 +1,39 @@
+import ipinfo
+import geopy
+import folium
+import webbrowser
+
+my_api_link = "7d201558fcb434"
+handler = ipinfo.getHandler(my_api_link)
+
+
+my_IP = input("Enter your IP address: ")
+
+
+details = handler.getDetails(my_IP)
+
+
+geolocator = geopy.Nominatim(user_agent="Nikki")
+
+
+location_str = details.loc
+latitude, longitude = map(float, location_str.split(','))
+
+
+map = folium.Map(location=[latitude, longitude], zoom_start=13)
+
+
+folium.Marker([latitude, longitude], popup='My Home').add_to(map)
+
+
+map_file = "map.html"
+map.save(map_file)
+
+# Open the map in the default web browser
+webbrowser.open(map_file)
+
+
+
+
+# Print IP details
+print(f"Latitude: {latitude}, Longitude: {longitude}")
