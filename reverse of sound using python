@@ -1,0 +1,55 @@
+import sounddevice as sd
+import wavio
+
+
+def recording_music(file_name,duration = 5,sample_rate = 44100,channel =2):
+    print("Recording ....")
+    recording = sd.rec(int(sample_rate*duration),samplerate=sample_rate, channels=channel, dtype='int16')
+
+    sd.wait()
+    wavio.write(file_name, recording, sample_rate, sampwidth=2)
+
+
+
+def calculate_dataofthesound(file_name):
+    wv = wavio.read(file_name)
+
+
+    data_size = len(file_name)
+
+
+    data_size_in_bits = wv.data.nbytes * 8
+
+    bit_rate = wv.rate * wv.sampwidth * 8
+
+    bits_per_sample = wv.sampwidth * 8
+
+    recording_type = "Mono" if wv.data.shape[1] == 1 else "Stereo"
+
+    sampling_rate = wv.rate
+
+    return {
+        "Data size (number of samples)": data_size ,
+        "Data size in bits": data_size_in_bits,
+        "Bit rate": bit_rate,
+        "Bits per sample": bits_per_sample,
+        "Type of recording": recording_type,
+        "Sampling rate": sampling_rate
+    }
+
+
+def reverse_sound(file_name):
+    wav = wavio.read(file_name)
+    reversed_sound = wav.data[::-1]
+    wavio.write("reversed_" + file_name, reversed_sound, wav.rate, sampwidth=wav.sampwidth)
+
+
+if __name__ == "__main__":
+    file_name = "banana 1.wav"
+    ##recording_music(file_name)
+    metrics = calculate_dataofthesound(file_name)
+    print("Data of the sound:")
+    for key, value in metrics.items():
+        print(f"{key}: {value}")
+    r_m =  reverse_sound(file_name)
+    print("Sound reversed and saved as reversed_recorded_sound.wav")
