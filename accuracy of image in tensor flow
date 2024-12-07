@@ -1,0 +1,73 @@
+num_classes = 10
+import os
+import numpy as np
+import tensorflow as tf
+from keras.preprocessing.image import ImageDataGenerator
+import PIL
+# Define paths to train and test directories
+train_dir = 'PetImages'
+test_dir = 'PetImages'
+
+# Image dimensions for VGG-16
+img_width, img_height = 224, 224
+
+# Data preprocessing and augmentation
+train_datagen = ImageDataGenerator(
+    rescale=1./255,
+    rotation_range=20,
+    width_shift_range=0.2,
+    height_shift_range=0.2,
+    shear_range=0.2,
+    zoom_range=0.2,
+    horizontal_flip=True,
+    fill_mode='nearest'
+)
+
+test_datagen = ImageDataGenerator(rescale=1./255)
+
+# Create data generators
+train_generator = train_datagen.flow_from_directory(
+    train_dir,
+    target_size=(img_width, img_height),
+    batch_size=32,
+    class_mode=None,  # No labels are needed
+    shuffle=False  # Keep the order to match with labels
+)
+
+test_generator = test_datagen.flow_from_directory(
+    test_dir,
+    target_size=(img_width, img_height),
+    batch_size=32,
+    class_mode=None,
+    shuffle=False
+)
+
+# Load VGG-16 without top dense layers
+base_model = tf.keras.applications.VGG16(weights='imagenet', include_top=False, input_shape=(img_width, img_height, 3))
+
+# Freeze convolutional layers
+base_model.trainable = False
+
+# Add custom classification layers
+model = tf.keras.models.Sequential([
+    base_model,
+    tf.keras.layers.Flatten(),
+    tf.keras.layers.Dense(256, activation='relu'),
+    tf.keras.layers.Dropout(0.5),
+    tf.keras.layers.Dense(1, activation='sigmoid')  # Binary classification, so one neuron with sigmoid activation
+])
+
+# Compile the model with custom loss and optimizer
+model.compile(optimizer='adam',
+              loss='binary_crossentropy',  # Binary cross-entropy loss for binary classification
+              metrics=['accuracy'])
+
+# Train the model
+model.fit(train_generator, epochs=10, steps_per_epoch=len(train_generator), validation_data=test_generator, validation_steps=len(test_generator))
+
+# Evaluate the model on the test data
+loss, accuracy = model.evaluate(test_generator, steps=len(test_generator))
+print(f'Test loss: {loss}')
+print(f'Test accuracy: {accuracy}')
+
+
