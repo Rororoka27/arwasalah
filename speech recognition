@@ -1,0 +1,47 @@
+import speech_recognition as sr
+import pyttsx3
+import pywhatkit
+
+# Initialize the recognizer and the text-to-speech engine
+listener = sr.Recognizer()
+engine = pyttsx3.init()
+
+def talk(text):
+    engine.say(text)
+    engine.runAndWait()
+
+def take_command():
+    try:
+        with sr.Microphone() as source:
+            print("Listening ....")
+            listener.adjust_for_ambient_noise(source)  # Adjust for ambient noise
+            voice = listener.listen(source)
+            command = listener.recognize_google(voice)
+            command = command.lower()
+            if 'alexa' in command:
+                command = command.replace('alexa', '').strip()
+                print(command)
+                return command
+    except sr.UnknownValueError:
+        print("Sorry, I did not understand that.")
+    except sr.RequestError:
+        print("Sorry, my speech service is down.")
+    except Exception as e:
+        print(f"An error occurred: {e}")
+    return ""
+
+def run_alexa():
+    command = take_command()
+    ##if command:
+        ##print(f"Command: {command}")
+    if 'play' in command:
+        song = command.replace('play', '').strip()
+        talk('Playing' +song)
+        pywhatkit.playonyt(song)
+    else:
+        talk("Please say a command that includes 'play'.")
+    ##else:
+        ##talk("No command received.")
+
+
+run_alexa()
