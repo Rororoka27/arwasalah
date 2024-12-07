@@ -1,0 +1,65 @@
+def test_polynomial(polynomial):
+    x = Symbol('x')
+    poly = Poly(polynomial, x)
+
+    if poly.is_irreducible:
+        print("The polynomial is irreducible.")
+    else:
+        factors = factor(poly)
+        if len(factors) == 1:
+            print("The polynomial is primitive.")
+        else:
+            print("The polynomial is reducible.")
+def encrypt(message,seed,tap):
+    encrypt_value =""
+    next_bit = seed[0]
+    for counter in message:
+        byte_representation = ord(counter)
+        encrypt_message = byte_representation
+        for i in range(8):
+            encrypt_message ^=next_bit
+            feed_bit =0
+            for j in tap:
+                feed_bit ^= seed[j-1]
+            seed = seed[1:] + [feed_bit]
+            next_bit = seed[0]
+        encrypt_value+=chr(encrypt_message)
+    return encrypt_value
+
+def flipflop(seed,tap,num_of_bits):
+    encrypted_bits = []
+    seed_length = len(seed)
+    next_bit = seed[0]
+    for i in range(num_of_bits):
+        encrypted_bits.append(next_bit)
+        feed_bit = 0
+        for t in tap:
+            feed_bit ^= seed[t-1]
+        seed = seed[1:]+ [feed_bit]
+        next_bit =seed[0]
+        
+        print(encrypted_bits)
+    return encrypted_bits
+
+    return ''.join(output[::-1])
+
+
+
+
+
+
+
+x = input("Enter the name")
+seed = [1, 0, 1, 1]
+taps = [4, 3]
+encrypted_message = encrypt(x, seed, taps)
+x = encrypted_message
+print("Encrypted message:", encrypted_message)
+num=16
+decrypt = encrypt(x,seed,taps)
+print("decrypt message :",decrypt)
+output = flipflop(seed,taps,num)
+print("flipflop clock: ",output)
+
+
+test_polynomial(seed)
