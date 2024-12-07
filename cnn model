@@ -1,0 +1,59 @@
+import tensorflow as tf
+import tensorflow_datasets as tfds
+from tensorflow.keras import layers, models
+from sklearn.model_selection import train_test_split
+
+# Load AFLW2K dataset using TensorFlow Datasets
+ds, info = tfds.load('aflw2k3d', split='train', with_info=True)
+
+# Define the desired number of training and testing images
+num_train_images = 1500
+num_test_images = 500
+
+# Initialize empty lists to store images and landmarks
+all_images = []
+all_landmarks = []
+
+# Iterate over the dataset until the desired number of images is reached
+for example in ds.take(num_train_images + num_test_images):
+    # Resize images to 450x450 and append to the list
+    image = tf.image.resize(example['image'], (450, 450))
+    all_images.append(image)
+
+    # Append landmarks to the list
+    landmarks = example['landmarks_68_3d_xy_normalized']
+    all_landmarks.append(landmarks)
+
+# Convert lists to tensors
+x_train = tf.stack(all_images[:num_train_images])
+y_train = tf.stack(all_landmarks[:num_train_images])
+x_test = tf.stack(all_images[num_train_images:])
+y_test = tf.stack(all_landmarks[num_train_images:])
+
+# Normalize input images to range [0, 1]
+x_train_normalized = tf.cast(x_train, tf.float32) / 255.0
+x_test_normalized = tf.cast(x_test, tf.float32) / 255.0
+
+# Build the CNN model
+model = models.Sequential([
+    layers.Conv2D(32, (3, 3), activation='relu', input_shape=(450, 450, 3)),
+    layers.MaxPool2D((2, 2)),
+    layers.Conv2D(64, (3, 3), activation='relu'),
+    layers.MaxPooling2D((2, 2)),
+    layers.Conv2D(128, (3, 3), activation='relu'),
+    layers.MaxPooling2D((2, 2)),
+    layers.Flatten(),
+    layers.Dense(256, activation='relu'),
+    layers.Dense(68 * 2)  # Output layer shape: (68*2) * 1
+])
+
+# Compile the model
+model.compile(optimizer='adam', loss='mse', metrics=['mae'])
+
+# Train the model
+history = model.fit(x_train_normalized, y_train, epochs=10, batch_size=32, validation_data=(x_test_normalized, y_test))
+
+# Evaluate the model on the testing set
+loss, mae = model.evaluate(x_test_normalized, y_test)
+print("Testing Loss:", loss)
+print("Testing MAE:", mae)
