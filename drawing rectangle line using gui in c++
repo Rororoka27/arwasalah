@@ -1,0 +1,327 @@
+#if defined(UNICODE) && !defined(_UNICODE)
+    #define _UNICODE
+#elif defined(_UNICODE) && !defined(UNICODE)
+    #define UNICODE
+#endif
+
+#include <tchar.h>
+#include <windows.h>
+#include<iostream>
+
+using namespace std;
+
+/*  Declare Windows procedure  */
+LRESULT CALLBACK WindowProcedure (HWND, UINT, WPARAM, LPARAM);
+
+/*  Make the class name into a global variable  */
+TCHAR szClassName[ ] = _T("CodeBlocksWindowsApp");
+
+int WINAPI WinMain (HINSTANCE hThisInstance,
+                     HINSTANCE hPrevInstance,
+                     LPSTR lpszArgument,
+                     int nCmdShow)
+{
+    HWND hwnd;               /* This is the handle for our window */
+    MSG messages;            /* Here messages to the application are saved */
+    WNDCLASSEX wincl;        /* Data structure for the windowclass */
+
+    /* The Window structure */
+    wincl.hInstance = hThisInstance;
+    wincl.lpszClassName = szClassName;
+    wincl.lpfnWndProc = WindowProcedure;      /* This function is called by windows */
+    wincl.style = CS_DBLCLKS;                 /* Catch double-clicks */
+    wincl.cbSize = sizeof (WNDCLASSEX);
+
+    /* Use default icon and mouse-pointer */
+    wincl.hIcon = LoadIcon (NULL, IDI_APPLICATION);
+    wincl.hIconSm = LoadIcon (NULL, IDI_APPLICATION);
+    wincl.hCursor = LoadCursor (NULL, IDC_ARROW);
+    wincl.lpszMenuName = NULL;                 /* No menu */
+    wincl.cbClsExtra = 0;                      /* No extra bytes after the window class */
+    wincl.cbWndExtra = 0;                      /* structure or the window instance */
+    /* Use Windows's default colour as the background of the window */
+    wincl.hbrBackground = (HBRUSH) COLOR_BACKGROUND;
+
+    /* Register the window class, and if it fails quit the program */
+    if (!RegisterClassEx (&wincl))
+        return 0;
+
+    /* The class is registered, let's create the program*/
+    hwnd = CreateWindowEx (
+           0,                   /* Extended possibilites for variation */
+           szClassName,         /* Classname */
+           _T("Code::Blocks Template Windows App"),       /* Title Text */
+           WS_OVERLAPPEDWINDOW, /* default window */
+           CW_USEDEFAULT,       /* Windows decides the position */
+           CW_USEDEFAULT,       /* where the window ends up on the screen */
+           544,                 /* The programs width */
+           375,                 /* and height in pixels */
+           HWND_DESKTOP,        /* The window is a child-window to desktop */
+           NULL,                /* No menu */
+           hThisInstance,       /* Program Instance handler */
+           NULL                 /* No Window Creation data */
+           );
+
+    /* Make the window visible on the screen */
+    ShowWindow (hwnd, nCmdShow);
+
+    /* Run the message loop. It will run until GetMessage() returns 0 */
+    while (GetMessage (&messages, NULL, 0, 0))
+    {
+        /* Translate virtual-key messages into character messages */
+        TranslateMessage(&messages);
+        /* Send message to WindowProcedure */
+        DispatchMessage(&messages);
+    }
+
+    /* The program return-value is 0 - The value that PostQuitMessage() gave */
+    return messages.wParam;
+}
+void swap (double &x,double &y){
+int tmp=x;
+x=y;
+y=tmp;
+
+
+
+}
+int Round(double x){
+return (int)(x+0.5);
+
+}
+void simpleDDA(HDC hdc,double xc,double yc,double x2, double y2,COLORREF c){
+double dx = x2-xc;
+double dy = y2-yc;
+SetPixel(hdc,xc,yc,c);
+if(abs(dx)>=abs(dy)){
+      if (xc > x2) {
+			swap(xc, x2);
+			swap(yc, y2);
+		}
+    double x =xc;
+    double y = yc;
+    double m = (double)dy/dx;
+    while(x2>x){
+        x++;
+        y+=m;
+        SetPixel(hdc,x,Round(y),c);
+
+
+    }
+    }
+
+
+else
+{
+    if(yc>y2){
+        swap(xc, x2);
+        swap(yc, y2);
+    }
+    double x = xc;
+    double y = yc;
+    double m = (double) dx/dy;
+    while(y2>y){
+        y++;
+        x+=m;
+        SetPixel(hdc,Round(x),y,c);
+
+
+    }
+}
+
+
+
+
+
+
+
+}
+union outcode {
+unsigned  all:4;
+
+struct {
+  unsigned   left:1; unsigned right:1;  unsigned top:1;unsigned bottom:1;
+
+
+
+};
+
+
+
+
+};
+outcode getoutcode(double x, double y, double xleft, double xright , double ybottom,double ytop){
+outcode r;
+r.all = 0;
+if(x<xleft) r.left =1;
+else if(x>xright) r.right=1;
+if(y>ybottom) r.bottom=1;
+else if(y<ytop)  r.top=1;
+cout << r.all << endl;
+return r;
+
+
+
+
+
+
+
+}
+void vintersect(double x1, double y1,double x2, double y2,double xedge, double &xint, double &yint){
+double m = (y2-y1)/(x2-x1);
+xint = xedge;
+yint = y1 + (xedge-x1)*m;
+
+
+
+
+
+}
+void hintersect(double x1, double y1,double x2, double y2,double yedge, double &xint, double &yint){
+double m = (x2-x1)/(y2-y1);
+yint = yedge;
+xint = x1 + (yedge-y1)*m;
+
+
+
+
+
+}
+void cohension(double x1, double y1, double x2, double y2,double xleft, double xright, double ybottom,double ytop,HDC hdc,COLORREF C){
+outcode out1= getoutcode(x1,y1,xleft,xright,ybottom,ytop);
+outcode out2=  getoutcode(x2,y2,xleft,xright,ybottom,ytop);
+/*
+71 26
+269 63
+l r b t
+115 325 129 6
+*/
+while((out1.all || out2.all) && !(out1.all & out2.all)){
+     double x, y;
+    if (out1.all!=0){
+        if(out1.left) vintersect(x1,y1,x2,y2,xleft,x,y);
+        else if(out1.right) vintersect(x1,y1,x2,y2,xright,x,y);
+        else if(out1.bottom) hintersect(x1,y1,x2,y2,ybottom,x,y);
+        else hintersect(x1,y1,x2,y2,ytop,x,y);
+        x1 = x;
+        y1 = y;
+        out1= getoutcode(x1,y1,xleft ,xright,ybottom,ytop);
+
+
+    }
+   else {
+        if(out2.left) vintersect(x1, y1,x2,y2,xleft,x,y);
+        else if(out2.right) vintersect(x1,y1,x2,y2,xright,x,y);
+        else if(out2.bottom) hintersect(x1,y1,x2,y2,ybottom,x,y);
+        else hintersect(x1,y1,x2,y2,ytop,x,y);
+        x2 = x;
+        y2 = y;
+        out2= getoutcode(x2,y2,xleft ,xright,ybottom,ytop);
+
+
+
+
+
+   }
+
+
+
+
+
+}
+
+
+if(out1.all==0&&out2.all==0)
+    simpleDDA(hdc,x1,y1,x2,y2,C);
+}
+
+double x1,y1,x2,y2,xleft,xright,ybottom,ytop,x3,y3,x4,y4,double d;
+static int c=0;
+static int c2=0;
+LRESULT CALLBACK WindowProcedure (HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
+{
+    HDC hdc;
+    hdc = GetDC(hwnd);
+    switch (message)                  /* handle the messages */
+    {
+    case WM_LBUTTONDBLCLK:
+        if(c==0){
+        x1=LOWORD(lParam);
+        y1 =HIWORD(lParam);
+        xleft=x1;
+
+         };
+        if(c==1){
+        x2=LOWORD(lParam);
+        y2 =HIWORD(lParam);
+        xright =x2;
+        y2=y1;
+        ybottom=y1;
+        d =abs(x2-x1)+abs(y2-y1);
+        simpleDDA(hdc,x2,y1,x2,y2,RGB(220,50,0));
+
+        /*c++;*/
+
+
+
+        }
+        else if(c==2){
+
+        x3=LOWORD(lParam);
+        y3 =HIWORD(lParam);
+        x3=x2;
+        ytop=y3;
+        simpleDDA(hdc,x2,y2,x3,y3,RGB(220,50,0));
+
+        /*c++;*/
+
+
+
+        }
+
+        else if(c==3){
+        x4=LOWORD(lParam);
+        y4 =HIWORD(lParam);
+        y4=y3;
+        simpleDDA(hdc,x4,y4,x3,y3,RGB(220,50,0));
+
+
+
+
+        }
+
+        else{
+         x4=x1;
+         simpleDDA(hdc,x4,y4,x1,y1,RGB(220,50,0)); }
+         c++;
+        break;
+    case WM_RBUTTONDBLCLK:
+          if(c2==0){
+            x1 = LOWORD(lParam);
+            y1 = HIWORD(lParam);
+            cout << x1 <<  " " << y1 << endl;
+             }
+
+          else if(c2==1)
+          {
+              x2 = LOWORD(lParam);
+              y2 =HIWORD(lParam);
+               cout << x2 <<  " " << y2 << endl;
+               cout << "test cohesion" << endl;
+               cout << xleft  << " "  << xright << " " << ybottom << " " <<ytop << endl;
+              cohension(x1,x2,y1,y2,xleft,xright,ybottom,ytop,hdc,RGB(0,0,0));
+              c2 = -1;
+
+          }
+          c2++;
+         break;
+
+        case WM_DESTROY:
+            PostQuitMessage (0);       /* send a WM_QUIT to the message queue */
+            break;
+        default:                      /* for messages that we don't deal with */
+            return DefWindowProc (hwnd, message, wParam, lParam);
+    }
+
+    return 0;
+}
