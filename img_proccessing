@@ -1,0 +1,31 @@
+import numpy as np
+import random
+import cv2
+import matplotlib.pyplot as plt
+def s_p(image, prop):
+  out_put = np.zeros(image.shape,np.uint8)
+  new_prop = 1-prop
+  for i in range(image.shape[0]):
+      for j in range(image.shape[1]):
+          rd = random.random()
+          if rd < prop:
+              out_put[i][j] = 0
+          elif  rd >new_prop:
+              out_put[i][j] = 255
+          else:
+                out_put[i][j] = image[i][j]
+  return out_put
+
+
+image = cv2.imread('/content/sky-mvehfqz6w2ges2dj.jpg')
+gray_image = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+plt.imshow(gray_image)
+
+noise_img_1 = s_p(image,0.05)
+plt.imshow(noise_img)
+
+noise_img_2 = s_p(image,0.02)
+plt.imshow(noise_img_2)
+
+noise_img_3 = s_p(image,0.07)
+plt.imshow(noise_img_3)
