@@ -1,0 +1,203 @@
+
+#include <tchar.h>
+#include <windows.h>
+#include <math.h>
+#include <string>
+#include <iostream>
+
+/*  Declare Windows procedure  */
+LRESULT CALLBACK WindowProcedure (HWND, UINT, WPARAM, LPARAM);
+
+/*  Make the class name into a global variable  */
+TCHAR szClassName[ ] = _T("CodeBlocksWindowsApp");
+
+int WINAPI WinMain (HINSTANCE hThisInstance,
+                     HINSTANCE hPrevInstance,
+                     LPSTR lpszArgument,
+                     int nCmdShow)
+{
+    HWND hwnd;               /* This is the handle for our window */
+    MSG messages;            /* Here messages to the application are saved */
+    WNDCLASSEX wincl;        /* Data structure for the windowclass */
+
+    /* The Window structure */
+    wincl.hInstance = hThisInstance;
+    wincl.lpszClassName = szClassName;
+    wincl.lpfnWndProc = WindowProcedure;      /* This function is called by windows */
+    wincl.style = CS_DBLCLKS;                 /* Catch double-clicks */
+    wincl.cbSize = sizeof (WNDCLASSEX);
+
+    /* Use default icon and mouse-pointer */
+    wincl.hIcon = LoadIcon (NULL, IDI_APPLICATION);
+    wincl.hIconSm = LoadIcon (NULL, IDI_APPLICATION);
+    wincl.hCursor = LoadCursor (NULL, IDC_ARROW);
+    wincl.lpszMenuName = NULL;                 /* No menu */
+    wincl.cbClsExtra = 0;                      /* No extra bytes after the window class */
+    wincl.cbWndExtra = 0;                      /* structure or the window instance */
+    /* Use Windows's default colour as the background of the window */
+    wincl.hbrBackground = (HBRUSH) COLOR_BACKGROUND;
+
+    /* Register the window class, and if it fails quit the program */
+    if (!RegisterClassEx (&wincl))
+        return 0;
+
+    /* The class is registered, let's create the program*/
+    hwnd = CreateWindowEx (
+           0,                   /* Extended possibilites for variation */
+           szClassName,         /* Classname */
+           _T("Code::Blocks Template Windows App"),       /* Title Text */
+           WS_OVERLAPPEDWINDOW, /* default window */
+           CW_USEDEFAULT,       /* Windows decides the position */
+           CW_USEDEFAULT,       /* where the window ends up on the screen */
+           544,                 /* The programs width */
+           375,                 /* and height in pixels */
+           HWND_DESKTOP,        /* The window is a child-window to desktop */
+           NULL,                /* No menu */
+           hThisInstance,       /* Program Instance handler */
+           NULL                 /* No Window Creation data */
+           );
+
+    /* Make the window visible on the screen */
+    ShowWindow (hwnd, nCmdShow);
+
+    /* Run the message loop. It will run until GetMessage() returns 0 */
+    while (GetMessage (&messages, NULL, 0, 0))
+    {
+        /* Translate virtual-key messages into character messages */
+        TranslateMessage(&messages);
+        /* Send message to WindowProcedure */
+        DispatchMessage(&messages);
+    }
+
+    /* The program return-value is 0 - The value that PostQuitMessage() gave */
+    return messages.wParam;
+}
+const int MAXENTRIES = 1000;
+
+ struct entry{
+int xleft,xright;
+
+
+
+};
+
+
+void InitEntries(entry table[])
+{
+
+for(int i=0;i<MAXENTRIES;i++)
+{
+
+table[i].xleft=INT_MAX;
+table[i].xright =-INT_MAX;
+
+}
+}
+void swap(POINT &p1,POINT &p2){
+POINT tmp;
+tmp =p1;
+p1=p2;
+p2=tmp;
+
+
+
+
+
+
+}
+void edge2table(POINT p1,POINT p2,entry table[]) {
+if(p1.y==p2.y) return;
+if(p1.y>p2.y) swap(p1,p2);
+    double x = p1.x;
+    int y = p1.y;
+    double m =(double) (p2.x-p1.x)/(p2.y-p1.y);
+    while(y<p2.y){
+    if(x<table[y].xleft) table[y].xleft =(int) ceil(x);
+        if (x>table[y].xright)table[y].xright = (int) floor(x);
+        y++;
+        x+=m;
+
+
+
+    }
+
+
+
+
+
+
+}
+
+
+void table2screen(HDC hdc,entry table[],COLORREF c){
+for(int i=0;i<1000;i++)
+    if(table[i].xleft <table[i].xright)
+     for(int x =table[i].xleft;x<=table[i].xright;x++)
+        SetPixel(hdc,x,i,c);
+}
+
+
+
+
+
+void convexfill(HDC hdc,POINT p[],int n,COLORREF c){
+entry *table=new entry[MAXENTRIES];
+
+InitEntries(table);
+POINT v1=p[n-1];
+for(int i=0;i<n;i++)
+{
+POINT v2=p[i];
+edge2table(v1,v2,table);
+v1=p[i];
+}
+table2screen(hdc,table,c);
+delete table;
+}
+
+
+
+
+static POINT p[5];
+static int counter=0;
+
+LRESULT CALLBACK WindowProcedure (HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
+{
+
+
+    HDC hdc = GetDC(hwnd);
+    switch (message)                  /* handle the messages */
+    {
+
+    case WM_LBUTTONDBLCLK:
+          if(counter<=3)
+          {
+               p[counter].x = LOWORD(lParam);
+                p[counter].y = HIWORD(lParam);
+                counter++;
+            }
+          else if(counter ==4){
+            p[counter].x = LOWORD(lParam);
+                p[counter].y = HIWORD(lParam);
+            Polygon(hdc, p,5);
+            counter++;
+            /*convexfill(hdc,p,5,RGB(255,0,0));*/
+        }
+        else if(counter == 5)
+            {
+                convexfill(hdc , p, 5 , RGB(255 , 0 , 0));
+                counter = 0;
+            }
+
+
+        ReleaseDC(hwnd,hdc);
+        break;
+        case WM_DESTROY:
+            PostQuitMessage (0);       /* send a WM_QUIT to the message queue */
+            break;
+        default:                      /* for messages that we don't deal with */
+            return DefWindowProc (hwnd, message, wParam, lParam);
+    }
+
+    return 0;
+}
