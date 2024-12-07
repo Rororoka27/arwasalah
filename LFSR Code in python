@@ -1,0 +1,32 @@
+class LFSR:
+    def __init__(self, taps, seed):
+        self.taps = taps
+        self.state = seed
+
+    def shift(self):
+        output = self.state & 1  # Get the rightmost bit as output
+        new_bit = 0
+        for tap in self.taps:
+            new_bit ^= (self.state >> tap) & 1
+        self.state = (self.state >> 1) | (new_bit << (len(self.state) - 1))
+        return output
+
+# Define taps for x^3 + x^1 + 1 polynomial
+taps = [3, 1, 0]
+
+# Initial seed to encrypt '1001'
+initial_state = 0b1001
+
+# Create an instance of the LFSR with the given taps and seed
+lfsr = LFSR(taps, initial_state)
+
+# Encrypt '1001' and print the output
+encrypted_bits = []
+for i in range(4):
+    encrypted_bit = lfsr.shift() ^ int(bin(initial_state)[-1])
+    encrypted_bits.append(encrypted_bit)
+
+# Convert the encrypted bits to a binary string
+encrypted_binary = ''.join(map(str, encrypted_bits))
+
+print("Encrypted:", encrypted_binary)
