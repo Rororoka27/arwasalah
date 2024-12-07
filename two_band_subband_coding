@@ -1,0 +1,61 @@
+import numpy as np
+from scipy import signal
+import matplotlib.pyplot as plt
+
+def haar_matrix(N):
+    hpq = np.zeros((N, N))
+    for k in range(1, N):
+        p = np.log2(N) - np.log2(k)
+        q = k % (2 ** p)
+        for v in range(N):
+            z = v / N
+            if z >= (q - 1) / (2 ** p) and z < (q - 0.5) / (2 ** p):
+                hpq[k, v] = 2 ** (p / 2)
+            elif z >= (q - 0.5) / (2 ** p) and z < q / (2 ** p):
+                hpq[k, v] = -2 ** (p / 2)
+            else:
+                hpq[k, v] = 0
+    return hpq
+
+def two_band_subband_coding(image, HaarMatrix):
+    # Convert the image to grayscale if it's not already
+     if len(image.shape) == 3:
+        image = np.mean(image, axis=2)
+
+    g0 = HaarMatrix[2, :]
+    g1 = HaarMatrix[3, :]
+
+    horizontal_detail = signal.convolve2d(image, np.outer(g1, g0), mode='same')
+    vertical_detail = signal.convolve2d(image, np.outer(g0, g1).T, mode='same')
+    diagonal_detail = signal.convolve2d(image, np.outer(g0, g0).T, mode='same')
+    approximation_details = signal.convolve2d(image, np.outer(g1, g1), mode='same')
+
+    return horizontal_detail, vertical_detail, diagonal_detail, approximation_details
+
+
+image = plt.imread('download (3).jpeg')
+N = 8
+HaarMatrix = haar_matrix(N)
+
+horizontal_detail, vertical_detail, diagonal_detail, approximation_details = two_band_subband_coding(image, HaarMatrix)
+
+# Display the results in one plot
+fig, axes = plt.subplots(2, 2, figsize=(10, 10))
+axes[0, 0].imshow(horizontal_detail, cmap='gray')
+axes[0, 0].set_title('Horizontal Detail')
+axes[0, 0].axis('off')
+
+axes[0, 1].imshow(vertical_detail, cmap='gray')
+axes[0, 1].set_title('Vertical Detail')
+axes[0, 1].axis('off')
+
+axes[1, 0].imshow(diagonal_detail, cmap='gray')
+axes[1, 0].set_title('Diagonal Detail')
+axes[1, 0].axis('off')
+
+axes[1, 1].imshow(approximation_details, cmap='gray')
+axes[1, 1].set_title('Approximation Details')
+axes[1, 1].axis('off')
+
+plt.tight_layout()
+plt.show()
