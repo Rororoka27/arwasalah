@@ -1,0 +1,148 @@
+import cv2
+from skimage.feature import hog
+from sklearn.datasets import fetch_openml
+from sklearn.model_selection import train_test_split
+from sklearn.preprocessing import StandardScaler
+from sklearn.svm import SVC
+import numpy as np
+
+
+def convolve(image, kernel):
+    # Get kernel size
+    k_rows, k_cols = kernel.shape
+
+    # Get image size
+    rows, cols = image.shape
+
+    # Get padding size
+    pad_rows = k_rows // 2
+    pad_cols = k_cols // 2
+
+    # Create padded image
+    padded_image = np.pad(image, ((pad_rows, pad_rows), (pad_cols, pad_cols)), mode='constant')
+
+    # Initialize result
+    result = np.zeros_like(image)
+
+    # Perform convolution
+    for i in range(rows):
+        for j in range(cols):
+            roi = padded_image[i:i + k_rows, j:j + k_cols]
+            result[i, j] = np.sum(roi * kernel)
+
+    return result
+def compute_gradients(image):
+    # Define Sobel filters
+    sobel_x = np.array([[-1, 0, 1],
+                        [-2, 0, 2],
+                        [-1, 0, 1]])
+
+    sobel_y = np.array([[-1, -2, -1],
+                        [0, 0, 0],
+                        [1, 2, 1]])
+
+    # Compute gradients
+    gradient_x = convolve(image, sobel_x)
+    gradient_y = convolve(image, sobel_y)
+
+    # Compute magnitude and orientation
+    magnitude = np.sqrt(gradient_x ** 2 + gradient_y ** 2)
+    orientation = np.arctan2(gradient_y, gradient_x)
+
+    return magnitude, orientation
+
+
+def compute_histograms(magnitude, orientation, cell_size=(8, 8), orientations=9):
+    # Define parameters
+    bins = np.linspace(-np.pi, np.pi, orientations + 1)
+    hist_shape = (magnitude.shape[0] // cell_size[0], magnitude.shape[1] // cell_size[1], orientations)
+
+    # Initialize histogram array
+    histograms = np.zeros(hist_shape)
+
+    # Compute histograms for each cell
+    for i in range(hist_shape[0]):
+        for j in range(hist_shape[1]):
+            cell_magnitude = magnitude[i * cell_size[0]:(i + 1) * cell_size[0], j * cell_size[1]:(j + 1) * cell_size[1]]
+            cell_orientation = orientation[i * cell_size[0]:(i + 1) * cell_size[0],
+                               j * cell_size[1]:(j + 1) * cell_size[1]]
+
+            histogram = np.zeros(orientations)
+            for k in range(orientations):
+                mask = np.logical_and(cell_orientation >= bins[k], cell_orientation < bins[k + 1])
+                histogram[k] = np.sum(cell_magnitude[mask])
+
+            histograms[i, j] = histogram
+
+    return histograms
+
+
+def compute_hog(image, cell_size=(8, 8), block_size=(2, 2), orientations=9):
+    # Compute gradients
+    magnitude, orientation = compute_gradients(image)
+
+    # Compute histograms
+    histograms = compute_histograms(magnitude, orientation, cell_size, orientations)
+
+    # Normalize histograms within each block
+    hog_features = []
+    for i in range(histograms.shape[0] - block_size[0] + 1):
+        for j in range(histograms.shape[1] - block_size[1] + 1):
+            block_histograms = histograms[i:i + block_size[0], j:j + block_size[1]]
+            block_features = block_histograms.flatten()
+            block_features /= np.linalg.norm(block_features) + 1e-6  # Avoid division by zero
+            hog_features.append(block_features)
+
+    return np.concatenate(hog_features)
+
+
+
+
+
+# Load your image
+img = cv2.imread('cat.jpg', cv2.IMREAD_GRAYSCALE)
+
+# Check if the image is loaded successfully
+if img is None:
+    print("Error: Unable to load image.")
+    exit()
+
+
+hog_features = compute_hog(img)
+
+
+if len(hog_features) < 784:
+
+    hog_features_padded = np.pad(hog_features, (0, 784 - len(hog_features)), mode='constant')
+elif len(hog_features) > 784:
+
+    hog_features_padded = hog_features[:784]
+else:
+
+    hog_features_padded = hog_features
+
+
+X_custom = np.array([hog_features_padded])
+
+
+mnist = fetch_openml('mnist_784', version=1, cache=True)
+
+
+X, y = mnist.data.astype('float32'), mnist.target.astype('int')
+
+
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
+
+
+scaler = StandardScaler()
+X_train_scaled = scaler.fit_transform(X_train)
+X_test_scaled = scaler.transform(X_test)
+
+
+clf = SVC(kernel='rbf', gamma='scale', C=1.0, random_state=42)
+clf.fit(X_train_scaled, y_train)
+y_pred = clf.predict(X_test_scaled)
+
+# Calculate accuracy
+accuracy = accuracy_score(y_test, y_pred)
+print("Accuracy:", accuracy)
