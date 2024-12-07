@@ -1,0 +1,113 @@
+import cv2
+import numpy as np
+
+def sift_or_surf(image):
+
+    detector = cv2.SIFT_create()
+    keypoints, descriptors = detector.detectAndCompute(image, None)
+    return keypoints, descriptors
+
+def arrange_pairs(setA, setB):
+
+    sorted_indices = np.argsort(setA[:, 0])
+    arranged_setB = setB[sorted_indices]
+    return arranged_setB
+
+def estimate_affine_transformation(setA, setB):
+
+    transformation_matrix = cv2.estimateAffinePartial2D(setB, setA)[0]
+    return transformation_matrix
+
+def estimate_projective_transformation(setA, setB):
+
+    transformation_matrix, _ = cv2.findHomography(setB, setA, cv2.RANSAC)
+    return transformation_matrix
+
+def estimate_transformation(setA, setB, transformation_type='projective'):
+
+    if transformation_type == 'affine':
+        return estimate_affine_transformation(setA, setB)
+    elif transformation_type == 'projective':
+        return estimate_projective_transformation(setA, setB)
+    else:
+        raise ValueError("Invalid transformation type. Choose 'affine' or 'projective'.")
+
+def apply_transformation(T, set):
+
+    homogeneous_points = np.concatenate([set, np.ones((len(set), 1))], axis=1)
+    T = np.vstack([T, [0, 0, 1]])  #convert the 2D transformation matrix T to a 3x3
+    transformed_points = np.dot(T, homogeneous_points.T).T
+    transformed_points /= transformed_points[:, 2, None]
+    return transformed_points[:, :2]
+
+def make_panorama(images):
+
+    stitcher = cv2.Stitcher_create()
+    status, panorama = stitcher.stitch(images)
+    if status == cv2.Stitcher_OK:
+        return panorama
+    else:
+        print("Error during stitching:", status)
+        return None
+
+def ransac(setA, setB, iterations=100, threshold=5):
+
+    best_model = None
+    best_inliers = []
+    max_inliers = 0
+    for _ in range(iterations):
+        indices = np.random.choice(len(setA), 4, replace=False)
+        sampleA = setA[indices]
+        sampleB = setB[indices]
+        T = estimate_transformation(sampleA, sampleB)
+        transformed_setB = apply_transformation(T, setB)
+        distances = np.linalg.norm(setA - transformed_setB, axis=1)
+        inliers = np.sum(distances < threshold)
+        if inliers > max_inliers:
+            max_inliers = inliers
+            best_model = T
+            best_inliers = np.where(distances < threshold)[0]
+    return best_model, best_inliers
+
+
+imageA = cv2.imread('image 1.jpg')
+imageB = cv2.imread('image 2.jpg')
+
+
+keypointsA, descriptorsA = sift_or_surf(imageA)
+keypointsB, descriptorsB = sift_or_surf(imageB)
+
+
+matcher = cv2.BFMatcher(cv2.NORM_L2)
+matches = matcher.match(descriptorsA, descriptorsB)
+matched_pointsA = np.float32([keypointsA[m.queryIdx].pt for m in matches])
+matched_pointsB = np.float32([keypointsB[m.trainIdx].pt for m in matches])
+
+
+arranged_pointsB = arrange_pairs(matched_pointsA, matched_pointsB)
+
+
+transformation_matrix_affine = estimate_transformation(matched_pointsA, arranged_pointsB, 'affine')
+transformation_matrix_projective = estimate_transformation(matched_pointsA, arranged_pointsB, 'projective')
+
+
+transformed_pointsB_affine = apply_transformation(transformation_matrix_affine, arranged_pointsB)
+transformed_pointsB_projective = apply_transformation(transformation_matrix_projective, arranged_pointsB)
+
+panorama = make_panorama([imageA, imageB])
+
+
+robust_transformation, inliers = ransac(matched_pointsA, matched_pointsB)
+
+
+transformed_pointsB_robust = apply_transformation(robust_transformation, matched_pointsB)
+
+
+panorama_robust = make_panorama([imageA, imageB])
+
+# Display the results
+cv2.imshow("Image A", imageA)
+cv2.imshow("Image B", imageB)
+cv2.imshow("Panorama", panorama)
+cv2.waitKey(0)
+cv2.destroyAllWindows()
