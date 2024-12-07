@@ -1,0 +1,40 @@
+from PIL import Image, ImageFilter
+import numpy as np
+import cv2
+
+def apply_gaussian_blur(image_path):
+    img = Image.open(image_path)
+    return img.filter(ImageFilter.GaussianBlur)
+
+def apply_min_filter(image_path):
+    img = Image.open(image_path)
+    return img.filter(ImageFilter.MinFilter)
+
+def subtract_images(image1, image2):
+    img1_np = np.array(image1, dtype=np.int16)
+    img2_np = np.array(image2, dtype=np.int16)
+    return np.clip(img1_np - img2_np, 0, 255).astype(np.uint8)
+
+def create_hybrid_image(image1, high_pass_img):
+    hybrid_img_np = np.array(image1, dtype=np.int16) + high_pass_img
+    return np.clip(hybrid_img_np, 0, 255).astype(np.uint8)
+
+def main():
+    img1_blurred = apply_gaussian_blur("img_1.jpg")
+    img2_low_pass = apply_min_filter("img_2.jpg")
+
+    high_pass_img = subtract_images(np.array(img2_low_pass), np.array(img2_low_pass))
+
+    subtracted_img = cv2.cvtColor(high_pass_img, cv2.COLOR_RGB2BGR)
+    cv2.imshow("Subtracted Image", subtracted_img)
+    cv2.waitKey(0)
+    cv2.destroyAllWindows()
+
+    hybrid_img = create_hybrid_image(np.array(img1_blurred), high_pass_img)
+    hybrid_img = cv2.cvtColor(hybrid_img, cv2.COLOR_RGB2BGR)
+    cv2.imshow("Hybrid Image", hybrid_img)
+    cv2.waitKey(0)
+    cv2.destroyAllWindows()
+
+if __name__ == "__main__":
+    main()
