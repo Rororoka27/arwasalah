@@ -1,0 +1,31 @@
+import cv2
+import numpy as np
+
+
+def compute_residual_image(image, kernel_size=(5, 5), sigma=1.0):
+
+
+
+    smoothed_image = cv2.GaussianBlur(image, kernel_size, sigma)
+
+
+    residual_image = image - smoothed_image
+
+    return residual_image
+
+
+
+img = cv2.imread("flower.png")
+original_img = img.copy()  # Make a copy of the original image
+p = 3
+
+residuals = []
+
+for i in range(p):
+    img = cv2.pyrDown(img)
+
+
+    r = compute_residual_image(img)
+    cv2.imshow("Interpolated Image", img)
+    cv2.imshow("residula image",r)
+    cv2.waitKey(0)
